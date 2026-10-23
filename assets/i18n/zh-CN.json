@@ -1,4 +1,6 @@
 {
+  "FrogChallenge": "青蛙瓷器挑战赛",
+  "frog_challenge": "青蛙瓷器挑战赛",
   "desktop": "桌面版设置",
   "desktop_enable_help": "开启此项则控制电脑上的阴阳师桌面版，窗口可以互相遮挡，但不能最小化。\n游戏用管理员启动时，OAS 也需要用管理员启动，否则会点不动。\n高分辨率屏幕需在游戏目录 bin\\onmyoji.exe 的 属性-兼容性-高DPI设置 中勾选“替代高DPI缩放行为”，否则点击位置会偏。",
   "game_path": "游戏安装目录",
