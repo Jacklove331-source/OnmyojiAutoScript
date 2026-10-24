@@ -49,13 +49,15 @@ class _QueueState:
             dict: 包含 current、timestamp、queue 的状态字典。
         """
         if not self.STATE_FILE.exists():
-            return {"current": None, "timestamp": None, "queue": []}
+            return {"current": None, "timestamp": None, "queue": [],
+                    "last_holder": None, "last_release": None}
         try:
             with open(self.STATE_FILE, "r", encoding="utf-8") as f:
                 return json.load(f)
         except (json.JSONDecodeError, IOError):
             logger.warning("[InstanceGuard] State file corrupted, resetting")
-            return {"current": None, "timestamp": None, "queue": []}
+            return {"current": None, "timestamp": None, "queue": [],
+                    "last_holder": None, "last_release": None}
 
     def write(self, state: dict) -> None:
         """写入状态文件。调用方需持有 _lock。"""
@@ -165,18 +167,66 @@ class InstanceGuard:
             guard.release()
     """
 
-    def __init__(self, config_name: str):
+    def __init__(self, config_name: str, stagger_group: list[str] | None = None,
+                 gap_minutes: int = 0):
         """Args:
             config_name: 配置文件名称。
+            stagger_group: 错峰分组成员配置名，例如 ['oas1', 'oas3']。
+            gap_minutes: 上一个同组成员释放执行权后，至少间隔多少分钟才允许开始。
         """
         self.config_name = config_name
         self._state = _QueueState(config_name)
         self._heartbeat = _Heartbeat(config_name, self._state)
+        self._stagger_group = [name for name in (stagger_group or []) if name]
+        self._gap_seconds = max(0, int(gap_minutes)) * 60
 
     @property
     def token_lost(self) -> bool:
         """token 是否被其他实例抢占。"""
         return self._heartbeat.token_lost
+
+    def _should_wait_gap(self, state: dict) -> bool:
+        """错峰判断：同组上一个实例刚释放执行权时，是否还没到最小间隔。
+
+        调用方需持有 _lock。没有错峰设置、上一个持有者是自己、或不在同组时，
+        都直接放行。
+        """
+        if not self._stagger_group or self._gap_seconds <= 0:
+            return False
+        last_holder = state.get("last_holder")
+        last_release = state.get("last_release")
+        if not last_holder or last_holder == self.config_name:
+            return False
+        if last_holder not in self._stagger_group:
+            return False
+        if not last_release:
+            return False
+        try:
+            released_at = datetime.fromisoformat(last_release)
+        except (ValueError, TypeError):
+            return False
+        waited = (datetime.now() - released_at).total_seconds()
+        if waited < self._gap_seconds:
+            remain = int(self._gap_seconds - waited)
+            logger.info(
+                f"[Stagger] '{last_holder}' released {int(waited)}s ago, "
+                f"'{self.config_name}' waits {remain}s more")
+            return True
+        return False
+
+    def _resume_not_reached(self, state: dict) -> bool:
+        """交接后的强制间隔是否还没到点。
+
+        上一个持有者把执行权交给等待队列里的同组实例时，会写入 resume_at，
+        在这之前任何人都不能抢占（包括心跳过期接管）。
+        """
+        resume_at = state.get("resume_at")
+        if not resume_at:
+            return False
+        try:
+            return datetime.now() < datetime.fromisoformat(resume_at)
+        except (ValueError, TypeError):
+            return False
 
     # ==================== 执行权操作 ====================
 
@@ -196,9 +246,14 @@ class InstanceGuard:
         with self._state._lock:
             state = self._state.read()
 
+            # 交接间隔未到：谁都不能开始
+            if self._resume_not_reached(state):
+                return False
+
             # 自己已是持有者，刷新心跳
             if state["current"] == self.config_name:
                 state["timestamp"] = datetime.now().isoformat()
+                state["resume_at"] = None
                 self._state.write(state)
                 self._heartbeat.start()
                 logger.info(f"[InstanceGuard] '{self.config_name}' already holds token")
@@ -211,6 +266,10 @@ class InstanceGuard:
                     f"heartbeat stale, taking over")
                 state["current"] = None
                 state["timestamp"] = None
+
+            # 无人持有，先检查错峰间隔，未到点则继续等待
+            if state["current"] is None and self._should_wait_gap(state):
+                return False
 
             # 无人持有，自己成为持有者
             if state["current"] is None:
@@ -237,9 +296,10 @@ class InstanceGuard:
     def release(self) -> None:
         """释放执行权。
 
-        清空 current 和 timestamp，停止心跳。
-        等待队列中的实例自行获取。
-        如果自己不是持有者，静默返回。
+        - 等待队列非空时，把执行权交给队首实例，并写入 resume_at（错峰间隔），
+          保证它不会立刻开跑；
+        - 队列为空时清空 current，记录最后一次释放时间；
+        - 如果自己不是持有者，静默返回。
         """
         with self._state._lock:
             state = self._state.read()
@@ -247,10 +307,25 @@ class InstanceGuard:
                 return
 
             self._heartbeat.stop()
-            state["current"] = None
-            state["timestamp"] = None
+            now = datetime.now()
+            state["last_holder"] = self.config_name
+            state["last_release"] = now.isoformat()
+            if state["queue"]:
+                next_holder = state["queue"].pop(0)
+                state["current"] = next_holder
+                state["timestamp"] = now.isoformat()
+                if self._gap_seconds > 0:
+                    resume_at = now.timestamp() + self._gap_seconds
+                    state["resume_at"] = datetime.fromtimestamp(resume_at).isoformat()
+                logger.info(
+                    f"[InstanceGuard] '{self.config_name}' released token "
+                    f"→ '{next_holder}' (stagger gap {self._gap_seconds // 60}min)")
+            else:
+                state["current"] = None
+                state["timestamp"] = None
+                state["resume_at"] = None
+                logger.info(f"[InstanceGuard] '{self.config_name}' released token")
             self._state.write(state)
-            logger.info(f"[InstanceGuard] '{self.config_name}' released token")
 
     def should_release(self, pending_task: list, waiting_task: list,
                        idle_threshold_minutes: int = 10) -> bool:
@@ -304,6 +379,8 @@ class InstanceGuard:
                 else:
                     state["current"] = None
                     state["timestamp"] = None
+                state["last_holder"] = self.config_name
+                state["last_release"] = datetime.now().isoformat()
                 self._state.write(state)
                 return
 

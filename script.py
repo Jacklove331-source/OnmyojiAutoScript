@@ -355,8 +355,10 @@ class Script:
             True: 获取得执行权，可以执行任务
             False: 等待被配置变更打断，调用方应重新加载配置后重试
         """
-        # 是否开启排队模式
-        if not self.config.script.optimization.queue_mode:
+        # 排队模式 / 错峰模式：二者任一开启都需要跨实例执行权
+        optimization = self.config.script.optimization
+        stagger = optimization.stagger
+        if not optimization.queue_mode and not stagger.enable:
             if self.instance_guard:
                 self.instance_guard.remove_from_queue()
                 self.instance_guard = None
@@ -364,9 +366,21 @@ class Script:
 
         # 懒加载instance_guard
         if self.instance_guard is None:
+            group = []
+            if stagger.enable and stagger.group:
+                raw = (stagger.group.replace('；', ',').replace('，', ',')
+                       .replace(';', ',').replace(' ', ','))
+                group = [name for name in raw.split(',') if name]
             try:
-                self.instance_guard = InstanceGuard(self.config_name)
-                logger.info(f"[Queue] Queue mode enabled for '{self.config_name}'")
+                self.instance_guard = InstanceGuard(
+                    self.config_name,
+                    stagger_group=group,
+                    gap_minutes=stagger.gap_minutes if stagger.enable else 0,
+                )
+                logger.info(
+                    f"[Queue] Guard enabled for '{self.config_name}', "
+                    f"queue_mode={optimization.queue_mode}, "
+                    f"stagger={group}, gap={stagger.gap_minutes if stagger.enable else 0}min")
             except Exception:
                 self.instance_guard = None
                 return True

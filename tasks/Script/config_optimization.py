@@ -6,6 +6,7 @@ from pydantic import BaseModel, ValidationError, validator, Field
 
 from module.logger import logger
 from tasks.Component.config_base import Time
+from tasks.Script.config_stagger import Stagger
 
 class WhenTaskQueueEmpty(str, Enum):
     GOTO_MAIN = 'goto_main'
@@ -36,4 +37,6 @@ class Optimization(BaseModel):
     queue_mode: bool = Field(default=False, description='queue_mode_help')
     # 释放执行权的空闲阈值（分钟），仅 queue_mode=True 时生效
     queue_idle_threshold: int = Field(default=10, description='queue_idle_threshold_help')
+    # 错峰执行：同组配置之间强制间隔，避免 oas1/oas3 同时占用设备
+    stagger: Stagger = Field(default_factory=Stagger)
 
