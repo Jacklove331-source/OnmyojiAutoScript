@@ -13,4 +13,4 @@ class Stagger(BaseModel):
 
     enable: bool = Field(default=False, description='stagger_enable_help')
     group: str = Field(default='', description='stagger_group_help')
-    gap_minutes: int = Field(default=15, ge=0, le=720, description='stagger_gap_minutes_help')
+    gap_minutes: int = Field(default=0, ge=0, le=720, description='stagger_gap_minutes_help')

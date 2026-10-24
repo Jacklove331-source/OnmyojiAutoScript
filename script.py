@@ -401,8 +401,10 @@ class Script:
             except Exception:
                 pass
         self.config.start_watching()
+        # 错峰模式下对方一跑完就要尽快接手，用更短的轮询间隔
+        poll_interval = 5 if stagger.enable else 30
         while True:
-            time.sleep(30)
+            time.sleep(poll_interval)
 
             if self.config.should_reload():
                 logger.info(f"[Queue] Config changed, re-evaluating")
@@ -715,6 +717,10 @@ class Script:
             _task_start = datetime.now()
             success = self.run(inflection.camelize(task))
             self.config.model.running_task = ''
+            # 错峰模式：每跑完一个任务就释放执行权，让同组实例立刻接手，
+            # 保证 oas1/oas3 的任务不会同时进行（而不是一直占着到空闲）。
+            if self.instance_guard and self.config.script.optimization.stagger.enable:
+                self.instance_guard.release()
             logger.info(f'Scheduler: End task `{task}`')
             self.is_first_task = False
             self.anti_ban_guard.record_active((datetime.now() - _task_start).total_seconds())

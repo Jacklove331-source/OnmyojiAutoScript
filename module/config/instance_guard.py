@@ -185,6 +185,27 @@ class InstanceGuard:
         """token 是否被其他实例抢占。"""
         return self._heartbeat.token_lost
 
+    HANDOFF_GRACE = 120  # 释放后优先让同组另一个实例接手的窗口（秒）
+
+    def _handoff_blocked(self, state: dict) -> bool:
+        """释放后优先让同组的另一个实例接手。
+
+        上一个实例释放执行权时写入 next_holder，在 HANDOFF_GRACE 秒内只允许
+        next_holder 接手；防止刚释放的实例在几毫秒后自己又抢回去，导致另一个
+        实例永远轮不上。
+        """
+        next_holder = state.get("next_holder")
+        if not next_holder or next_holder == self.config_name:
+            return False
+        last_release = state.get("last_release")
+        if not last_release:
+            return False
+        try:
+            elapsed = (datetime.now() - datetime.fromisoformat(last_release)).total_seconds()
+        except (ValueError, TypeError):
+            return False
+        return elapsed < self.HANDOFF_GRACE
+
     def _should_wait_gap(self, state: dict) -> bool:
         """错峰判断：同组上一个实例刚释放执行权时，是否还没到最小间隔。
 
@@ -250,10 +271,18 @@ class InstanceGuard:
             if self._resume_not_reached(state):
                 return False
 
+            # 刚释放的实例在优先窗口内不能抢，先把机会让给同组另一个实例
+            if self._handoff_blocked(state):
+                logger.info(
+                    f"[Stagger] handoff to '{state.get('next_holder')}', "
+                    f"'{self.config_name}' waits")
+                return False
+
             # 自己已是持有者，刷新心跳
             if state["current"] == self.config_name:
                 state["timestamp"] = datetime.now().isoformat()
                 state["resume_at"] = None
+                state["next_holder"] = None
                 self._state.write(state)
                 self._heartbeat.start()
                 logger.info(f"[InstanceGuard] '{self.config_name}' already holds token")
@@ -275,6 +304,8 @@ class InstanceGuard:
             if state["current"] is None:
                 state["current"] = self.config_name
                 state["timestamp"] = datetime.now().isoformat()
+                state["next_holder"] = None
+                state["resume_at"] = None
                 if self.config_name in state["queue"]:
                     state["queue"].remove(self.config_name)
                 self._state.write(state)
@@ -317,6 +348,9 @@ class InstanceGuard:
                 if self._gap_seconds > 0:
                     resume_at = now.timestamp() + self._gap_seconds
                     state["resume_at"] = datetime.fromtimestamp(resume_at).isoformat()
+                else:
+                    state["resume_at"] = None
+                state["next_holder"] = None
                 logger.info(
                     f"[InstanceGuard] '{self.config_name}' released token "
                     f"→ '{next_holder}' (stagger gap {self._gap_seconds // 60}min)")
@@ -324,6 +358,9 @@ class InstanceGuard:
                 state["current"] = None
                 state["timestamp"] = None
                 state["resume_at"] = None
+                # 队列为空说明同组另一个实例当前没有在等执行权（没有到点任务），
+                # 不做交接，避免它根本没运行时把自己卡住 HANDOFF_GRACE 秒。
+                state["next_holder"] = None
                 logger.info(f"[InstanceGuard] '{self.config_name}' released token")
             self._state.write(state)
 
