@@ -559,6 +559,31 @@ class Script:
         self.device.release_during_wait()
         return self.wait_until(next_run)
 
+    def _apply_auto_lineup(self, command: str) -> None:
+        """战斗任务开始前，按全局「自动阵容」设置套用预设队伍/QuickLoadout。"""
+        try:
+            auto_cfg = self.config.script.auto_lineup
+        except AttributeError:
+            return
+        if not auto_cfg.enable:
+            return
+        try:
+            from module.lineup import apply as lineup_apply
+            from module.lineup import data as lineup_data
+            lineup_data.ensure_default_file(auto_cfg.data_file)
+            result = lineup_apply.apply_for_task(
+                self.config.model, command,
+                apply_mode=getattr(auto_cfg.apply_mode, 'value', auto_cfg.apply_mode),
+            )
+            if result.get('applied'):
+                logger.info(
+                    f"[AutoLineup] `{command}` -> {result.get('lineup')} "
+                    f"({', '.join(result.get('fields', []))})")
+            else:
+                logger.info(f"[AutoLineup] `{command}` skipped: {result.get('reason')}")
+        except Exception as e:
+            logger.warning(f'[AutoLineup] failed for `{command}`: {e}')
+
     def exception_handler(self, e: Exception, command: str) -> None:
         # 处理御魂溢出
         from tasks.Utils.post_diagnotor import PostDiagnotor, AnalyzeType
@@ -595,6 +620,9 @@ class Script:
             self._emulator_down = True
             self.instance_guard.release()
             return False
+
+        # 自动阵容：战斗任务开始前挑并套用最合适的预设队伍 / QuickLoadout
+        self._apply_auto_lineup(command)
 
         try:
             self.device.screenshot()
