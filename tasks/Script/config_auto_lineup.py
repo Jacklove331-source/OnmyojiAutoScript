@@ -46,6 +46,6 @@ class AutoLineup(BaseModel):
     data_file: str = Field(default='config/auto_lineup.json', description='auto_lineup_data_file_help')
     web_url: str = Field(default='', description='auto_lineup_web_url_help')
     web_cache_hours: int = Field(default=24, ge=0, le=24 * 30, description='auto_lineup_web_cache_help')
-    default_preset_group: int = Field(default=1, ge=1, le=7, description='auto_lineup_default_group_help')
-    default_preset_team: int = Field(default=1, ge=1, le=5, description='auto_lineup_default_team_help')
+    default_preset_group: int = Field(default=1, ge=1, description='auto_lineup_default_group_help')
+    default_preset_team: int = Field(default=1, ge=1, description='auto_lineup_default_team_help')
     overwrite_manual: bool = Field(default=False, description='auto_lineup_overwrite_help')

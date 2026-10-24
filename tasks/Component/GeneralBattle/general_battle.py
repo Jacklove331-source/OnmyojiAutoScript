@@ -480,10 +480,15 @@ class GeneralBattle(BattleWait, GeneralBuff):
                 return color_2
             return color_3
 
-        # 选择预设组
-        tmp = self.__getattribute__("C_PRESET_GROUP_" + str(preset_group))
+        # 选择预设组（不限制编号：优先用已有资产，超出范围按坐标推算）
+        from module.atom.click import RuleClick
+        preset_group = max(1, int(preset_group))
+        tmp = getattr(self, f"C_PRESET_GROUP_{preset_group}", None)
         if tmp is None:
-            tmp = self.C_PRESET_GROUP_1
+            y = 240 + (preset_group - 1) * 62
+            tmp = RuleClick(roi_front=(35, y, 25, 50), roi_back=(35, y, 25, 50),
+                            name=f'preset_group_{preset_group}')
+            logger.info(f"Preset group {preset_group} has no asset, use computed y={y}")
         color_size = [self.C_PRESET_GROUP_1.roi_back[2],
                       self.C_PRESET_GROUP_1.roi_back[3]]
         # unselected_color = get_unselect_color(self.C_PRESET_GROUP_1, self.C_PRESET_GROUP_2, self.C_PRESET_GROUP_3, size=color_size)
@@ -501,11 +506,15 @@ class GeneralBattle(BattleWait, GeneralBuff):
 
         logger.info("Select preset group")
 
-        # 选择预设的队伍
+        # 选择预设的队伍（同样不限制编号）
         time.sleep(0.5)
-        tmp = self.__getattribute__("C_PRESET_TEAM_" + str(preset_team))
+        preset_team = max(1, int(preset_team))
+        tmp = getattr(self, f"C_PRESET_TEAM_{preset_team}", None)
         if tmp is None:
-            tmp = self.C_PRESET_TEAM_1
+            y = 235 + (preset_team - 1) * 120
+            tmp = RuleClick(roi_front=(195, y, 465, 110), roi_back=(195, y, 465, 110),
+                            name=f'preset_team_{preset_team}')
+            logger.info(f"Preset team {preset_team} has no asset, use computed y={y}")
         color_size = [5, 5]
         # unselected_color = get_unselect_color(self.C_PRESET_TEAM_1, self.C_PRESET_TEAM_2, self.C_PRESET_TEAM_3, size=color_size )
         unselected_color = (216.8, 185.0, 146.8)

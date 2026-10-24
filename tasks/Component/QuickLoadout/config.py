@@ -14,7 +14,7 @@ class QuickLoadoutConfig(BaseModel):
 
     enable: bool = Field(default=False, description='quick_loadout_enable_help')
     mode: QuickLoadoutMode = Field(default=QuickLoadoutMode.NUMBER, description='quick_loadout_mode_help')
-    group_number: int = Field(default=1, description='quick_loadout_group_number_help', ge=1, le=7)
+    group_number: int = Field(default=1, description='quick_loadout_group_number_help', ge=1)
     preset_number: int = Field(default=1, description='quick_loadout_preset_number_help', ge=1)
     group_name: str = Field(default='', description='quick_loadout_group_name_help')
     preset_name: str = Field(default='', description='quick_loadout_preset_name_help')

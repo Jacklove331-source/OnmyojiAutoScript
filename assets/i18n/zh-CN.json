@@ -200,13 +200,15 @@
   "auto_lineup_data_file_help": "阵容表 JSON 路径，默认 config/auto_lineup.json（首次启用会自动生成模板）。",
   "auto_lineup_web_url_help": "返回阵容 JSON 的地址（source=web/auto 时使用），格式与内置库一致；结果缓存到 config/auto_lineup_remote.json，不会覆盖你的本地表。",
   "auto_lineup_web_cache_help": "联网数据的本地缓存时长，避免每次都请求。",
-  "auto_lineup_default_group_help": "阵容表没写 preset_group 时使用的默认预设组（1-7）。",
-  "auto_lineup_default_team_help": "阵容表没写 preset_team 时使用的默认预设队（1-5）。",
+  "auto_lineup_default_group_help": "阵容表没写 preset_group 时使用的默认预设组（从 1 开始，无上限）。",
+  "auto_lineup_default_team_help": "阵容表没写 preset_team 时使用的默认预设队（从 1 开始，无上限）。",
   "auto_lineup_overwrite_help": "任务里已经手动开了预设队伍/一键配置时，是否仍用自动阵容覆盖。",
   "strategy": "选择策略",
   "roster_file": "式神池文件",
   "min_score": "最低适配分",
   "auto_lineup_strategy_help": "table=按阵容表/任务映射直接选；optimizer=按 config/roster.json 里的式神、技能、速度、御魂打分择优（缺式神会提示）。",
   "auto_lineup_roster_file_help": "你的式神池文件，默认 config/roster.json；自动阵容按它评估强度与适配度。",
-  "auto_lineup_min_score_help": "optimizer 模式下低于这个分数就不套用（0-100）。"
+  "auto_lineup_min_score_help": "optimizer 模式下低于这个分数就不套用（0-100）。",
+  "preset_group_help": "预设组编号，从 1 开始，不再限制上限（超出 1~7 会按面板坐标推算）。",
+  "preset_team_help": "预设队伍编号，从 1 开始，不再限制上限（超出 1~4 会按面板坐标推算）。"
 }

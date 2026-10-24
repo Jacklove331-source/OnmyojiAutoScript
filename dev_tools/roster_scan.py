@@ -59,6 +59,9 @@ def main() -> None:
     p_swipe.add_argument('--duration', type=float, default=0.5)
     p_wait = sub.add_parser('wait')
     p_wait.add_argument('seconds', type=float)
+    p_name = sub.add_parser('name')
+    p_name.add_argument('x', type=int)
+    p_name.add_argument('y', type=int)
     args = parser.parse_args()
 
     if args.cmd == 'wait':
@@ -73,6 +76,21 @@ def main() -> None:
         save_shot(device, 'launch')
     elif args.cmd == 'shot':
         save_shot(device, 'scan')
+    elif args.cmd == 'name':
+        import cv2
+        from module.atom.ocr import RuleOcr
+        device.click(args.x, args.y)
+        time.sleep(1.2)
+        image = device.screenshot()
+        x, y, w, h = 555, 95, 95, 355
+        crop = image[y:y + h, x:x + w]
+        for label, img in (('raw', crop), ('rot90', cv2.rotate(crop, cv2.ROTATE_90_CLOCKWISE))):
+            ocr = RuleOcr(roi=(0, 0, img.shape[1], img.shape[0]), area=(0, 0, img.shape[1], img.shape[0]),
+                          mode='Full', method='Default', keyword='', name=f'name_{label}')
+            results = ocr.detect_and_ocr(img)
+            texts = [r.ocr for r in results]
+            print(f'{label}: {texts}')
+        save_shot(device, 'name')
     elif args.cmd == 'click':
         device.click(args.x, args.y)
         time.sleep(args.wait)
