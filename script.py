@@ -559,6 +559,44 @@ class Script:
         self.device.release_during_wait()
         return self.wait_until(next_run)
 
+    def _roster_scan_due(self) -> bool:
+        """每周扫描是否到点（按配置的周几 + 时间，且距上次扫描满 7 天）。"""
+        cfg = getattr(self.config.script, 'roster_scan', None)
+        if cfg is None or not getattr(cfg, 'enable', False):
+            return False
+        if self.config.model.running_task:
+            return False
+        now = datetime.now()
+        try:
+            weekday = int(getattr(cfg.weekday, 'value', cfg.weekday))
+            t = cfg.time
+            hh, mm = int(t.hour), int(t.minute)
+        except Exception:
+            return False
+        delta = (now.isoweekday() - weekday) % 7
+        occurrence = datetime.combine((now - timedelta(days=delta)).date(),
+                                      datetime.min.time()).replace(hour=hh, minute=mm)
+        if occurrence > now:
+            occurrence -= timedelta(days=7)
+        last_raw = str(getattr(cfg, 'last_scan', '') or '')
+        if not last_raw:
+            return True
+        try:
+            last = datetime.fromisoformat(last_raw)
+        except ValueError:
+            return True
+        return last < occurrence
+
+    def _run_roster_scan(self) -> None:
+        """执行一次式神录扫描，写入 roster 文件并记录时间。"""
+        from module.lineup import scan as roster_scan
+        cfg = self.config.script.roster_scan
+        logger.hr('Roster scan', level=1)
+        logger.info(f'[RosterScan] start: rarities={cfg.rarities}, pages={cfg.pages_per_rarity}')
+        result = roster_scan.run_scan(self.device, cfg)
+        cfg.last_scan = datetime.now().isoformat(timespec='seconds')
+        logger.info(f"[RosterScan] done: {result['count']} shikigami -> {result['path']}")
+
     def _apply_auto_lineup(self, command: str) -> None:
         """战斗任务开始前，按全局「自动阵容」设置套用预设队伍/QuickLoadout。"""
         try:
@@ -722,6 +760,12 @@ class Script:
                 with _log_switch_lock:
                     logger.set_file_logger(self.config_name, do_cleanup=True)
                 start_day = date.today()
+            # 每周式神池扫描（全局配置；默认开启，可自定义周几/几点）
+            try:
+                if self._roster_scan_due():
+                    self._run_roster_scan()
+            except Exception as e:
+                logger.warning(f'[RosterScan] skip this round: {e}')
             # Check update event from GUI
             # if self.stop_event is not None:
             #     if self.stop_event.is_set():

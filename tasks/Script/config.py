@@ -9,6 +9,7 @@ from tasks.Script.config_error import Error
 from tasks.Script.config_optimization import Optimization
 from tasks.Script.config_antiban import AntiBan
 from tasks.Script.config_auto_lineup import AutoLineup
+from tasks.Script.config_roster_scan import RosterScan
 
 
 class Script(BaseModel):
@@ -18,3 +19,4 @@ class Script(BaseModel):
     optimization: Optimization = Field(default_factory=Optimization)
     anti_ban: AntiBan = Field(default_factory=AntiBan)
     auto_lineup: AutoLineup = Field(default_factory=AutoLineup)
+    roster_scan: RosterScan = Field(default_factory=RosterScan)
