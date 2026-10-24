@@ -357,8 +357,7 @@ class Script:
         """
         # 排队模式 / 错峰模式：二者任一开启都需要跨实例执行权
         optimization = self.config.script.optimization
-        stagger = optimization.stagger
-        if not optimization.queue_mode and not stagger.enable:
+        if not optimization.queue_mode and not optimization.stagger_enable:
             if self.instance_guard:
                 self.instance_guard.remove_from_queue()
                 self.instance_guard = None
@@ -367,20 +366,20 @@ class Script:
         # 懒加载instance_guard
         if self.instance_guard is None:
             group = []
-            if stagger.enable and stagger.group:
-                raw = (stagger.group.replace('；', ',').replace('，', ',')
+            if optimization.stagger_enable and optimization.stagger_group:
+                raw = (optimization.stagger_group.replace('；', ',').replace('，', ',')
                        .replace(';', ',').replace(' ', ','))
                 group = [name for name in raw.split(',') if name]
             try:
                 self.instance_guard = InstanceGuard(
                     self.config_name,
                     stagger_group=group,
-                    gap_minutes=stagger.gap_minutes if stagger.enable else 0,
+                    gap_minutes=optimization.stagger_gap_minutes if optimization.stagger_enable else 0,
                 )
                 logger.info(
                     f"[Queue] Guard enabled for '{self.config_name}', "
                     f"queue_mode={optimization.queue_mode}, "
-                    f"stagger={group}, gap={stagger.gap_minutes if stagger.enable else 0}min")
+                    f"stagger={group}, gap={optimization.stagger_gap_minutes if optimization.stagger_enable else 0}min")
             except Exception:
                 self.instance_guard = None
                 return True
@@ -402,7 +401,7 @@ class Script:
                 pass
         self.config.start_watching()
         # 错峰模式下对方一跑完就要尽快接手，用更短的轮询间隔
-        poll_interval = 5 if stagger.enable else 30
+        poll_interval = 5 if optimization.stagger_enable else 30
         while True:
             time.sleep(poll_interval)
 
@@ -719,7 +718,7 @@ class Script:
             self.config.model.running_task = ''
             # 错峰模式：每跑完一个任务就释放执行权，让同组实例立刻接手，
             # 保证 oas1/oas3 的任务不会同时进行（而不是一直占着到空闲）。
-            if self.instance_guard and self.config.script.optimization.stagger.enable:
+            if self.instance_guard and self.config.script.optimization.stagger_enable:
                 self.instance_guard.release()
             logger.info(f'Scheduler: End task `{task}`')
             self.is_first_task = False
