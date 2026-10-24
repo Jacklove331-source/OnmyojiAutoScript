@@ -58,6 +58,12 @@ from tasks.ActivityShikigami.config import ActivityShikigami
 from tasks.MetaDemon.config import MetaDemon
 from tasks.FrogBoss.config import FrogBoss
 from tasks.FrogChallenge.config import FrogChallenge
+from tasks.Chess.config import Chess
+from tasks.WeeklyPurchase.config import WeeklyPurchase
+from tasks.MartialArts.config import MartialArts
+from tasks.LBS.config import LBS
+from tasks.GuguArtStudio.config import GuguArtStudio
+from tasks.IbukiArena.config import IbukiArena
 from tasks.FloatParade.config import FloatParade
 from tasks.Quiz.config import Quiz
 from tasks.KittyShop.config import KittyShop
@@ -125,6 +131,12 @@ class ConfigModel(ConfigBase):
     meta_demon: MetaDemon = Field(default_factory=MetaDemon)
     frog_boss: FrogBoss = Field(default_factory=FrogBoss)
     frog_challenge: FrogChallenge = Field(default_factory=FrogChallenge)
+    chess: Chess = Field(default_factory=Chess)
+    weekly_purchase: WeeklyPurchase = Field(default_factory=WeeklyPurchase)
+    martial_arts: MartialArts = Field(default_factory=MartialArts)
+    lbs: LBS = Field(default_factory=LBS)
+    gugu_art_studio: GuguArtStudio = Field(default_factory=GuguArtStudio)
+    ibuki_arena: IbukiArena = Field(default_factory=IbukiArena)
     float_parade: FloatParade = Field(default_factory=FloatParade)
     quiz: Quiz = Field(default_factory=Quiz)
     kitty_shop: KittyShop = Field(default_factory=KittyShop)

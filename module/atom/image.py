@@ -29,9 +29,14 @@ def set_roi_match_padding(pad: int) -> None:
 
 
 class RuleImage(RuleImageMallResourceMixin):
+    METHOD_TEMPLATE_MATCH = "Template matching"
+    METHOD_MASKED_TEMPLATE_MATCH = "Masked template matching"
+    METHOD_MULTI_SCALE_TEMPLATE_MATCH = "Multi-scale template matching"
+    METHOD_SIFT_FLANN = "Sift Flann"
     debug_mode: bool = False
 
-    def __init__(self, roi_front: tuple, roi_back: tuple, method: str, threshold: float, file: str) -> None:
+    def __init__(self, roi_front: tuple, roi_back: tuple, method: str, threshold: float, file: str,
+                 profile: str = "High") -> None:
         """
         初始化
         :param roi_front: 前置roi
@@ -39,6 +44,7 @@ class RuleImage(RuleImageMallResourceMixin):
         :param method: 匹配方法 "Template matching" / "Masked template matching" / "Multi-scale template matching" / "Sift Flann"
         :param threshold: 阈值  0.8
         :param file: 相对路径, 带后缀
+        :param profile: 识别/点击档位（High/More），来自 xylolit-mu 分支的生成资源，仅保存
         """
         self._match_init = False  # 这个是给后面的 等待图片稳定
         self._image = None  # 这个是匹配的目标
@@ -49,6 +55,7 @@ class RuleImage(RuleImageMallResourceMixin):
         self.last_score = -1.0  # 最近一次匹配的真实分数, -1 表示本次未产生分数
         self.last_scale = None  # 最近一次多尺度匹配命中的缩放倍数, 仅 Multi-scale 方法写入
         self.method = method
+        self.profile = profile
 
         self.roi_front: list = list(roi_front)
         self.roi_back = roi_back

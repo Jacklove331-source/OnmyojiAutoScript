@@ -772,6 +772,14 @@ class GameUi(BaseTask, GameUiAssets):
         logger.attr(f'{time.time() - start_time:.1f}s', f"Page arrived {destination}")
         return True
 
+    def finish_task_navigation(self) -> bool:
+        """任务收尾导航：兼容 xylolit-mu 分支的任务代码，默认回到庭院。"""
+        if getattr(self.config, 'defer_task_courtyard_return', False):
+            logger.info('Keep current page for scheduler handoff')
+            return True
+        from tasks.GameUi.default_pages import page_main
+        return self.goto_page(page_main)
+
     def goto_page(self, destination: Page, confirm_wait: float = 0, skip_first_screenshot: bool = True,
                   timeout: int = 30, *, accepted_pages: tuple[Page, ...] = ()) -> bool | None:
         """导航到目标页面。

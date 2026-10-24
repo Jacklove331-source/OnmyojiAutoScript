@@ -10,14 +10,19 @@ from module.logger import logger
 
 class RuleClick:
 
-    def __init__(self, roi_front: tuple, roi_back: tuple, name: str = None) -> None:
+    def __init__(self, roi_front: tuple, roi_back: tuple, name: str = None,
+                 functional: bool = True, profile: str = None) -> None:
         """
         初始化
         :param roi_front:
         :param roi_back:
+        :param functional: 兼容 xylolit-mu 分支的 RuleScatter 构造参数
+        :param profile: 点击密度档位（High/More），本分支暂不参与计算，仅保存
         """
         self.roi_front = roi_front
         self.roi_back = roi_back
+        self.functional = functional
+        self.profile = profile
         if name:
             self.name = name
         else:

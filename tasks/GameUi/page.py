@@ -58,6 +58,7 @@ from tasks.GameUi.default_pages import (
 from tasks.GameUi.matcher import AllMatcher, AnyMatcher, AtomMatcher, Matcher, NotMatcher, all_of, any_of, ensure_matcher, not_
 from tasks.GameUi.page_definition import Page, Transition
 from tasks.GameUi.registry import PageRegistry
+from tasks.Chess.page import page_chess, page_chess_battle, page_chess_result  # noqa: E402
 
 __all__ = [
     "ActionSequence",
@@ -121,5 +122,8 @@ __all__ = [
     "sequence",
     "page_battle_team",
     "page_battle_team_exit",
-    "page_pet"
+    "page_pet",
+    "page_chess",
+    "page_chess_battle",
+    "page_chess_result"
 ]

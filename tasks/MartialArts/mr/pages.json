@@ -1,0 +1,32 @@
+[
+  {
+    "itemName": "main_goto_mar",
+    "imageName": "mr_main_goto_mar.png",
+    "profile": "High",
+    "roiFront": "1190,380,37,39",
+    "roiBack": "1162,193,87,328",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "武道大会活动主页标志（待裁模板）"
+  },
+  {
+    "itemName": "to_battle_ap",
+    "imageName": "mr_to_battle_ap.png",
+    "profile": "High",
+    "roiFront": "184,212,26,131",
+    "roiBack": "179,207,36,141",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": ""
+  },
+  {
+    "itemName": "to_battle_boss",
+    "imageName": "mr_to_battle_boss.png",
+    "profile": "High",
+    "roiFront": "1118,258,26,131",
+    "roiBack": "1113,253,36,141",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": ""
+  }
+]

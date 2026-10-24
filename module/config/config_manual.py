@@ -18,8 +18,8 @@ class ConfigManual:
         > CollectiveMissions
         > Pets > TalismanPass > Delegation > Hyakkiyakou
         > Secret > WeeklyTrifles > MysteryShop > Duel 
-        > TrueOrochi > RichMan
-        > MetaDemon > FrogBoss > FrogChallenge > FloatParade > Quiz > KittyShop > DyeTrials > MemoryScrolls
+        > TrueOrochi > RichMan > WeeklyPurchase > Chess
+        > MetaDemon > FrogBoss > FrogChallenge > FloatParade > LBS > GuguArtStudio > IbukiArena > MartialArts > Quiz > KittyShop > DyeTrials > MemoryScrolls
         """
 
     DEVICE_OVER_HTTP = False

@@ -4,6 +4,7 @@
 import time
 import random
 import difflib
+from enum import Enum
 from time import sleep
 
 import cv2
@@ -21,14 +22,43 @@ from tasks.Component.GeneralBattle.battle_wait import BattleWait
 from module.logger import logger
 
 
+
+class BattleBehaviorScope(str, Enum):
+    """兼容 xylolit-mu 分支：声明一次性行为的作用域。"""
+
+    BATTLE_KEY = "battle_key"
+    CALL = "call"
+    ROUND = "round"
+
+
+class BattleAction(str, Enum):
+    CONTINUE = "continue"
+    EXIT_WIN = "exit_win"
+    EXIT_LOSE = "exit_lose"
+    QUICK_EXIT = "quick_exit"
+
+
 class GeneralBattle(BattleWait, GeneralBuff):
+
+    # ---------------- 兼容 xylolit-mu 分支的战斗钩子 ----------------
+    BATTLE_TIMEOUT = 120
+
+    def _resolve_battle_timeout(self, config):
+        return self.BATTLE_TIMEOUT
+
+    def _get_battle_behavior_scopes(self, config, battle_key):
+        return {}
+
     """
     使用这个通用的战斗必须要求这个任务的config有config_general_battle
     """
 
-    def run_general_battle(self, config: GeneralBattleConfig = None, buff: BuffClass or list[BuffClass] = None) -> bool:
+    def run_general_battle(self, config: GeneralBattleConfig = None, buff: BuffClass or list[BuffClass] = None,
+                           battle_key: str = "default", exit_matcher=None) -> bool:
         """
         运行脚本
+        :param battle_key: 兼容 xylolit-mu 分支的参数，本分支暂不使用
+        :param exit_matcher: 兼容参数，战斗结束后若识别到该页面则视为已回任务页
         :return:
         """
         logger.hr("General battle start", 2)
@@ -45,6 +75,12 @@ class GeneralBattle(BattleWait, GeneralBuff):
             self.green_mark(config.green_enable, config.green_mark)
         # 战中设置
         win = self.battle_wait(random_click_swipt_enable=config.random_click_swipt_enable)
+        if exit_matcher is not None:
+            try:
+                if self.appear(exit_matcher):
+                    return True
+            except Exception as e:
+                logger.warning(f"exit_matcher check failed: {e}")
         if win:
             return True
         else:

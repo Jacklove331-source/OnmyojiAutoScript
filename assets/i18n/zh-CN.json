@@ -164,5 +164,16 @@
   "green_mark_type": "绿标匹配方式",
   "green_mark_type_help": "按坐标点击指定绿标，或按式神名OCR 匹配后点击",
   "green_mark_name": "绿标式神名称",
-  "green_mark_name_help": "仅当绿标按式神名匹配时生效，填写目标式神名"
+  "green_mark_name_help": "仅当绿标按式神名匹配时生效，填写目标式神名",
+  "Chess": "百鬼棋局",
+  "chess_config": "百鬼棋局配置",
+  "LBS": "LBS鬼王",
+  "lbs_config": "LBS鬼王配置",
+  "lbs_mode": "运行模式",
+  "lbs_mode_help": "单人挑战：创建不公开房间直接打\n组队匹配：寻找队伍自动匹配路人\n开车模式：创建公开房间，有人进来退出再开，结束条件为挑战次数（即是开车次数）或运行时间到达",
+  "GuguArtStudio": "呱呱画室",
+  "IbukiArena": "狭间幻境",
+  "WeeklyPurchase": "每周购买",
+  "martial_arts": "武道大会",
+  "MartialArts": "武道大会"
 }
