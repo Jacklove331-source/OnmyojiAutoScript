@@ -56,6 +56,12 @@ class Screenshot(Adb, DroidCast, Scrcpy, Window, NemuIpc):
         self._screenshot_interval.wait()
         self._screenshot_interval.reset()
 
+        # 错峰抢占检查：恢复类任务（Restart）抢走执行权后，当前任务尽快暂停
+        from module.config.instance_guard import active_guard, StaggerPreempted
+        guard = active_guard()
+        if guard is not None and guard.preempted():
+            raise StaggerPreempted()
+
         for _ in range(2):
             method = self.screenshot_methods.get(
                 self.config.script.device.screenshot_method,

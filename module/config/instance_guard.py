@@ -154,6 +154,18 @@ class _Heartbeat:
                 logger.error(f"[InstanceGuard] Heartbeat error: {e}")
 
 
+class StaggerPreempted(Exception):
+    """执行权被恢复类任务（Restart）抢占，当前任务需要暂停。"""
+
+
+_ACTIVE_GUARD = None
+
+
+def active_guard():
+    """返回当前进程最近创建的 InstanceGuard（没有则 None）。"""
+    return _ACTIVE_GUARD
+
+
 class InstanceGuard:
     """跨进程实例看守器。
 
@@ -179,6 +191,37 @@ class InstanceGuard:
         self._heartbeat = _Heartbeat(config_name, self._state)
         self._stagger_group = [name for name in (stagger_group or []) if name]
         self._gap_seconds = max(0, int(gap_minutes)) * 60
+        # 是否正持有执行权；被抢占检测只在持有时生效
+        self._holding = False
+        self._preempt_cache_at = 0.0
+        self._preempt_cache_val = False
+        global _ACTIVE_GUARD
+        _ACTIVE_GUARD = self
+
+    def preempted(self) -> bool:
+        """是否在执行任务期间被别人抢走执行权（Restart 抢占）。
+
+        每 2 秒最多读一次状态文件，避免每个截图都做 IO。
+        """
+        if not self._holding:
+            return False
+        import time as _time
+        now = _time.monotonic()
+        if now - self._preempt_cache_at < 2.0:
+            return self._preempt_cache_val
+        self._preempt_cache_at = now
+        self._preempt_cache_val = False
+        try:
+            with open(self._state.STATE_FILE, 'r', encoding='utf-8') as f:
+                state = json.load(f)
+        except (OSError, ValueError):
+            return False
+        if state.get('current') != self.config_name:
+            logger.warning(
+                f"[Stagger] '{self.config_name}' lost token to "
+                f"'{state.get('current')}', pausing task")
+            self._preempt_cache_val = True
+        return self._preempt_cache_val
 
     @property
     def token_lost(self) -> bool:
@@ -251,18 +294,20 @@ class InstanceGuard:
 
     # ==================== 执行权操作 ====================
 
-    def try_acquire(self, queue: bool = True) -> bool:
+    def try_acquire(self, queue: bool = True, force: bool = False) -> bool:
         """尝试获取执行权。
 
         Args:
             queue: True 表示抢不到时排进等待队列（普通任务）；
-                False 表示只尝试一次、不排队（错峰豁免任务，如 Restart）。
+                False 表示只尝试一次、不排队。
+            force: True 表示恢复类任务（Restart）优先抢占：
+                直接把执行权从当前持有者手里拿过来，并让被抢占者之后能重新排队。
 
         四种情况:
         1. 自己已是持有者 — 刷新 heartbeat，返回 True
         2. 持有者心跳过期 — 强制接管，返回 True
         3. 无人持有 — 自己成为持有者，启动心跳，返回 True
-        4. 他人持有 — 加入等待队列（queue=True），返回 False
+        4. 他人持有 — force=True 则抢占；否则加入等待队列（queue=True）
 
         Returns:
             True: 已获得执行权。
@@ -270,6 +315,25 @@ class InstanceGuard:
         """
         with self._state._lock:
             state = self._state.read()
+
+            # 恢复类任务：直接抢占当前持有者
+            if force and state["current"] not in (None, self.config_name):
+                victim = state["current"]
+                if victim not in state["queue"]:
+                    state["queue"].insert(0, victim)
+                state["current"] = self.config_name
+                state["timestamp"] = datetime.now().isoformat()
+                state["next_holder"] = None
+                state["resume_at"] = None
+                state["preempted_by"] = self.config_name
+                self._state.write(state)
+                self._holding = True
+                self._preempt_cache_at = 0.0
+                self._heartbeat.start()
+                logger.warning(
+                    f"[Stagger] '{self.config_name}' preempted token from "
+                    f"'{victim}', it will pause and requeue")
+                return True
 
             # 交接间隔未到：谁都不能开始
             if self._resume_not_reached(state):
@@ -289,6 +353,7 @@ class InstanceGuard:
                 state["next_holder"] = None
                 self._state.write(state)
                 self._heartbeat.start()
+                self._holding = True
                 logger.info(f"[InstanceGuard] '{self.config_name}' already holds token")
                 return True
 
@@ -316,6 +381,7 @@ class InstanceGuard:
                 logger.info(
                     f"[InstanceGuard] '{self.config_name}' acquired token")
                 self._heartbeat.start()
+                self._holding = True
                 return True
 
             # 他人持有
@@ -349,8 +415,10 @@ class InstanceGuard:
         with self._state._lock:
             state = self._state.read()
             if state["current"] != self.config_name:
+                self._holding = False
                 return
 
+            self._holding = False
             self._heartbeat.stop()
             now = datetime.now()
             state["last_holder"] = self.config_name

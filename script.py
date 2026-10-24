@@ -29,7 +29,7 @@ from multiprocessing.queues import Queue
 from module.config.utils import convert_to_underscore
 from module.config.config import Config
 from module.config.config_model import ConfigModel
-from module.config.instance_guard import InstanceGuard
+from module.config.instance_guard import InstanceGuard, StaggerPreempted
 from module.config.anti_ban import AntiBanGuard
 from module.device.device import Device
 from module.device.env import IS_WINDOWS
@@ -66,6 +66,8 @@ class Script:
         self.loop_thread: Thread = None
         # 跨进程排队管理器（仅在 queue_mode=True 时初始化）
         self.instance_guard: InstanceGuard = None
+        # 当前任务是否因 Restart 抢占而暂停（不算失败）
+        self._preempted = False
         self.anti_ban_guard: AntiBanGuard = AntiBanGuard()
 
     @cached_property
@@ -338,10 +340,10 @@ class Script:
             antiban_wake = self.anti_ban_guard.wake_time(now, self.config.script.anti_ban)
             if antiban_wake is not None:
                 task.next_run = max(task.next_run, antiban_wake)
-            # 错峰豁免任务（Restart）：不排队、不阻塞，能拿执行权就拿，拿不到也照跑
+            # 恢复类任务（Restart）：抢占执行权，不排队、不阻塞
             if task.command in self.STAGGER_EXEMPT_TASKS:
                 if self._ensure_instance_guard():
-                    self.instance_guard.try_acquire(queue=False)
+                    self.instance_guard.try_acquire(queue=False, force=True)
             elif not self._try_acquire_queue_token():
                 del_cached_property(self, "config")
                 continue
@@ -577,10 +579,10 @@ class Script:
         if command == 'start' or command == 'goto_main':
             logger.error(f'Invalid command `{command}`')
 
-        # 错峰豁免任务（Restart）：不等执行权，避免恢复流程被另一个实例的错峰队列卡住
+        # 恢复类任务（Restart）：抢占执行权，让同组另一个实例暂停
         if command in self.STAGGER_EXEMPT_TASKS:
             if self._ensure_instance_guard():
-                self.instance_guard.try_acquire(queue=False)
+                self.instance_guard.try_acquire(queue=False, force=True)
         elif not self._try_acquire_queue_token():
             return False
 
@@ -601,6 +603,15 @@ class Script:
             logger.info(f'module_path: {module_path}, module_name: {module_name}')
             task_module = load_module(module_name, module_path)
             task_module.ScriptTask(config=self.config, device=self.device).run()
+        except StaggerPreempted:
+            # 执行权被 Restart 抢占：暂停当前任务，等 Restart 释放后重新排队
+            logger.warning(
+                f'[{self.config_name}] task `{command}` paused: execution token '
+                f'preempted by Restart')
+            self._preempted = True
+            if self.instance_guard:
+                self.instance_guard.release()
+            return False
         except TaskEnd:
             return True
         except GameNotRunningError as e:
@@ -746,9 +757,13 @@ class Script:
             self.anti_ban_guard.record_active((datetime.now() - _task_start).total_seconds())
 
             # Check failures
+            # 被 Restart 抢占而暂停的任务不算失败
+            preempted = getattr(self, '_preempted', False)
+            if preempted:
+                self._preempted = False
             # failed = deep_get(self.failure_record, keys=task, default=0)
             failed = self.failure_record[task] if task in self.failure_record else 0
-            failed = 0 if success else failed + 1
+            failed = failed if preempted else (0 if success else failed + 1)
             # deep_set(self.failure_record, keys=task, value=failed)
             self.failure_record[task] = failed
             if failed >= 3:
