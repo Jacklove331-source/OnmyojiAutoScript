@@ -81,27 +81,28 @@ def _apply_soul(conf, entry, overwrite: bool) -> bool:
 
 
 def _load_entries_by_source(auto_lineup_cfg) -> tuple[dict, dict]:
-    """按 source 设置加载阵容数据（local / web / ocr / auto）。"""
+    """按 source 设置加载阵容数据（local / web / ocr / auto）。
+
+    合并优先级：内置参考库 < 联网缓存 < 本地文件（你自己的编辑优先）。
+    """
     source = getattr(auto_lineup_cfg, 'source', 'local')
     source = getattr(source, 'value', source)
     data_file = getattr(auto_lineup_cfg, 'data_file', None)
+    url = getattr(auto_lineup_cfg, 'web_url', '')
+    cache_hours = int(getattr(auto_lineup_cfg, 'web_cache_hours', 24))
+
     if source == 'web':
-        data.fetch_remote(getattr(auto_lineup_cfg, 'web_url', ''),
-                          data_file,
-                          int(getattr(auto_lineup_cfg, 'web_cache_hours', 24)))
-        return data.load_entries(data_file)
+        data.fetch_remote(url, data_file, cache_hours)
+        return data.load_merged(data_file, use_remote=True)
     if source == 'ocr':
         # OCR 识别的结果由 OCR 工具写入本地表，这里直接读本地
-        return data.load_entries(data_file)
+        return data.load_merged(data_file)
     if source == 'auto':
-        entries, task_map = data.load_entries(data_file)
-        if entries:
-            return entries, task_map
-        url = getattr(auto_lineup_cfg, 'web_url', '')
-        if url:
-            data.fetch_remote(url, data_file, int(getattr(auto_lineup_cfg, 'web_cache_hours', 24)))
-        return data.load_entries(data_file)
-    return data.load_entries(data_file)
+        local_raw = data.load_raw(data_file)
+        if not local_raw.get('lineups') and url:
+            data.fetch_remote(url, data_file, cache_hours)
+        return data.load_merged(data_file, use_remote=True)
+    return data.load_merged(data_file)
 
 
 def apply_for_task(config_model, task_name: str, enemy_name: str | None = None,

@@ -103,17 +103,74 @@ def load_entries(configured: str | None = None) -> tuple[dict[str, LineupEntry],
     return entries, raw.get('task_map', {})
 
 
+BUNDLED_FILE = 'assets/lineup/lineups_zh-CN.json'
+
+
+def bundled_path() -> Path:
+    return Path.cwd() / BUNDLED_FILE
+
+
+def load_bundled() -> dict:
+    """内置参考阵容库（随仓库分发，来自公开攻略整理）。"""
+    path = bundled_path()
+    if not path.exists():
+        return {'version': 1, 'lineups': {}, 'task_map': {}}
+    try:
+        with io.open(path, encoding='utf-8') as f:
+            raw = json.load(f)
+    except (OSError, ValueError) as e:
+        logger.warning(f'[AutoLineup] bundled file broken: {e}')
+        return {'version': 1, 'lineups': {}, 'task_map': {}}
+    raw.setdefault('lineups', {})
+    raw.setdefault('task_map', {})
+    return raw
+
+
+def remote_path(configured: str | None = None) -> Path:
+    path = data_path(configured)
+    return path.with_name(path.stem + '_remote.json')
+
+
+def load_remote(configured: str | None = None) -> dict:
+    path = remote_path(configured)
+    if not path.exists():
+        return {'version': 1, 'lineups': {}, 'task_map': {}}
+    try:
+        with io.open(path, encoding='utf-8') as f:
+            raw = json.load(f)
+    except (OSError, ValueError):
+        return {'version': 1, 'lineups': {}, 'task_map': {}}
+    raw.setdefault('lineups', {})
+    raw.setdefault('task_map', {})
+    return raw
+
+
+def load_merged(configured: str | None = None, use_remote: bool = False):
+    """合并优先级：内置库 < 联网缓存 < 本地文件（本地编辑优先）。"""
+    layers = [load_bundled()]
+    if use_remote:
+        layers.append(load_remote(configured))
+    layers.append(load_raw(configured))
+    lineups, task_map = {}, {}
+    for layer in layers:
+        lineups.update(layer.get('lineups', {}))
+        task_map.update(layer.get('task_map', {}))
+    entries = {name: LineupEntry.from_dict(name, value)
+               for name, value in lineups.items()}
+    return entries, task_map
+
+
 def fetch_remote(url: str, configured: str | None = None,
                  cache_hours: int = 24) -> dict | None:
-    """从远端拉取 JSON 到本地数据文件（带缓存）。"""
+    """从远端拉取 JSON 到「联网缓存」文件（不覆盖你自己的本地阵容表）。"""
     if not url:
         return None
-    path = data_path(configured)
+    path = remote_path(configured)
     if path.exists() and cache_hours > 0:
         age_hours = (time.time() - path.stat().st_mtime) / 3600
         if age_hours < cache_hours:
             logger.info(f'[AutoLineup] remote cache still fresh ({age_hours:.1f}h)')
-            return load_raw(configured)
+            return load_remote(configured)
     try:
         import requests
         resp = requests.get(url, timeout=20)
@@ -121,38 +178,29 @@ def fetch_remote(url: str, configured: str | None = None,
         raw = resp.json()
     except Exception as e:
         logger.warning(f'[AutoLineup] fetch {url} failed: {e}')
-        return load_raw(configured)
+        return load_remote(configured)
     raw.setdefault('lineups', {})
     raw.setdefault('task_map', {})
     raw.setdefault('version', 1)
-    save_raw(raw, configured)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with io.open(path, 'w', encoding='utf-8') as f:
+        json.dump(raw, f, ensure_ascii=False, indent=2)
     logger.info(f'[AutoLineup] fetched {len(raw["lineups"])} lineups from {url}')
     return raw
 
 
 def ensure_default_file(configured: str | None = None) -> Path:
-    """首次启用时生成一个带示例的数据文件。"""
+    """首次启用时生成一个空骨架；内置参考阵容在 assets/lineup/ 里，不覆盖。"""
     path = data_path(configured)
     if path.exists():
         return path
     template = {
         'version': 1,
-        '_help': 'lineups 里定义阵容，task_map 把任务名映射到阵容；enemy 用于按敌方名称匹配',
-        'lineups': {
-            '示例-御魂': {
-                'preset_group': 3,
-                'preset_team': 1,
-                'soul_group': '',
-                'soul_team': '',
-                'tags': ['御魂'],
-                'enemy': [],
-                'priority': 0,
-                'note': '把这里的组/队改成你游戏里的预设队伍',
-            },
-        },
-        'task_map': {
-            'Orochi': '示例-御魂',
-        },
+        '_help': ('本文件只放你自己的覆盖项；不写就用 assets/lineup/lineups_zh-CN.json 的内置参考库。'
+                  'lineups 定义阵容（preset_group/preset_team/soul_group/soul_team/enemy/priority/note），'
+                  'task_map 把任务名映射到阵容名。'),
+        'lineups': {},
+        'task_map': {},
     }
     save_raw(template, configured)
     return path

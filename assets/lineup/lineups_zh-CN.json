@@ -1,0 +1,88 @@
+{
+  "version": 1,
+  "_help": "内置参考阵容库（联网检索整理，非权威）。preset_group/preset_team 对应游戏内预设队伍槽位；请先按 note 里的思路在游戏里建好预设，再让 OAS 自动切换。",
+  "lineups": {
+    "御魂-通用": {
+      "preset_group": 1, "preset_team": 1, "tags": ["御魂"], "enemy": [], "priority": 0,
+      "note": "通用 AOE 队：玉藻前/茨木童子/大天狗一类群体输出 + 拉条，按速度配速；魂十/魂土通用，缺式神就先用你现有最高输出。"
+    },
+    "御魂-高配速刷": {
+      "preset_group": 1, "preset_team": 2, "tags": ["御魂"], "enemy": [], "priority": 5,
+      "note": "高配速刷：双须佐之男/因幡辉夜姬一类 13 秒级配置，要求速度与御魂达标。"
+    },
+    "御魂-业原火": {
+      "preset_group": 1, "preset_team": 3, "tags": ["御魂", "业原火"], "enemy": [], "priority": 0,
+      "note": "业原火：玉藻前/茨木童子的双狗粮或双拉输出，社区常见 14-16 秒思路。"
+    },
+    "御魂-日轮之城": {
+      "preset_group": 1, "preset_team": 4, "tags": ["御魂", "日轮"], "enemy": [], "priority": 0,
+      "note": "日轮之城：多段 AOE 为主，按当期怪配置调整。"
+    },
+    "御魂-永生之海": {
+      "preset_group": 1, "preset_team": 5, "tags": ["御魂", "永生之海"], "enemy": [], "priority": 0,
+      "note": "永生之海：SP 萤草 + 双须佐一类 11 秒思路（P1），具体看当期机制。"
+    },
+    "觉醒-通用": {
+      "preset_group": 2, "preset_team": 1, "tags": ["觉醒"], "enemy": [], "priority": 0,
+      "note": "觉醒副本：任意群体输出 + 拉条即可，速度优先。"
+    },
+    "探索-通用": {
+      "preset_group": 3, "preset_team": 1, "tags": ["探索"], "enemy": [], "priority": 0,
+      "note": "探索/契灵：双拉条 + 群体输出，按章节怪物调速度。"
+    },
+    "活动-通用": {
+      "preset_group": 4, "preset_team": 1, "tags": ["活动"], "enemy": [], "priority": 0,
+      "note": "活动爬塔通用：群体输出 + 拉条；限时活动按当期小怪换输出。"
+    },
+    "道馆-馆员": {
+      "preset_group": 5, "preset_team": 1, "tags": ["道馆"], "enemy": ["馆员"], "priority": 0,
+      "note": "道馆打馆员：常规输出队。"
+    },
+    "道馆-馆主": {
+      "preset_group": 5, "preset_team": 2, "tags": ["道馆"], "enemy": ["馆主"], "priority": 10,
+      "note": "道馆打馆主：单体爆发优先。"
+    },
+    "结界-突破": {
+      "preset_group": 5, "preset_team": 3, "tags": ["结界", "寮突破"], "enemy": [], "priority": 0,
+      "note": "结界突破/寮突破：AOE 快速清场。"
+    },
+    "逢魔-常规": {
+      "preset_group": 6, "preset_team": 1, "tags": ["逢魔"], "enemy": ["鬼王"], "priority": 0,
+      "note": "逢魔之时：常规首领输出队。"
+    },
+    "逢魔-高星": {
+      "preset_group": 6, "preset_team": 2, "tags": ["逢魔"], "enemy": ["六星", "五星", "5星", "6星"], "priority": 20,
+      "note": "五星/六星鬼王：高爆发单体队。"
+    },
+    "真蛇": {
+      "preset_group": 7, "preset_team": 1, "tags": ["真蛇"], "enemy": [], "priority": 0,
+      "note": "真八岐大蛇：按阶段换输出/奶，建议单独建预设。"
+    },
+    "斗技-通用": {
+      "preset_group": 7, "preset_team": 2, "tags": ["斗技"], "enemy": [], "priority": 0,
+      "note": "斗技：按自己池子配置，脚本只做基础切换。"
+    }
+  },
+  "task_map": {
+    "Orochi": "御魂-通用",
+    "OrochiMoans": "御魂-通用",
+    "Sougenbi": "御魂-业原火",
+    "FallenSun": "御魂-日轮之城",
+    "EternitySea": "御魂-永生之海",
+    "SixRealms": "御魂-通用",
+    "OtherWorldTwilight": "御魂-通用",
+    "EvoZone": "觉醒-通用",
+    "Exploration": "探索-通用",
+    "AreaBoss": "活动-通用",
+    "Nian": "活动-通用",
+    "Tako": "活动-通用",
+    "Dokan": "道馆-馆员",
+    "RealmRaid": "结界-突破",
+    "RyouToppa": "结界-突破",
+    "KekkaiUtilize": "结界-突破",
+    "KekkaiActivation": "结界-突破",
+    "DemonEncounter": "逢魔-常规",
+    "TrueOrochi": "真蛇",
+    "Duel": "斗技-通用"
+  }
+}
