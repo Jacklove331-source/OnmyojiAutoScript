@@ -46,6 +46,10 @@ _log_switch_lock = threading.Lock()#线程锁
 
 
 class Script:
+    # 错峰豁免任务：恢复类任务不排队、不等执行权，避免游戏崩溃后卡在错峰队列里。
+    # 这些任务即使同组另一个实例正在运行也直接执行（能顺手拿到执行权就拿）。
+    STAGGER_EXEMPT_TASKS = {'Restart'}
+
     def __init__(self, config_name: str ='oas') -> None:
         logger.hr('Start', level=0)
         self.server = None
@@ -334,7 +338,11 @@ class Script:
             antiban_wake = self.anti_ban_guard.wake_time(now, self.config.script.anti_ban)
             if antiban_wake is not None:
                 task.next_run = max(task.next_run, antiban_wake)
-            if not self._try_acquire_queue_token():
+            # 错峰豁免任务（Restart）：不排队、不阻塞，能拿执行权就拿，拿不到也照跑
+            if task.command in self.STAGGER_EXEMPT_TASKS:
+                if self._ensure_instance_guard():
+                    self.instance_guard.try_acquire(queue=False)
+            elif not self._try_acquire_queue_token():
                 del_cached_property(self, "config")
                 continue
             # 任务时间到了返回任务名称
@@ -345,25 +353,20 @@ class Script:
                 # 若等待被打断, 则刷新配置
                 del_cached_property(self, "config")
 
-    def _try_acquire_queue_token(self) -> bool:
-        """
-        尝试获取排队执行权。
-        如果排队模式未启用，返回 True。
-        如果排队模式启用但未能获取到执行权，进入等待循环直到获取成功或配置变更。
+    def _ensure_instance_guard(self) -> bool:
+        """按需创建跨实例执行权守卫（排队模式或错峰模式开启时）。
 
         Returns:
-            True: 获取得执行权，可以执行任务
-            False: 等待被配置变更打断，调用方应重新加载配置后重试
+            True: 守卫可用（调用方需要/可以获取执行权）。
+            False: 两种模式都没开，或创建失败。
         """
-        # 排队模式 / 错峰模式：二者任一开启都需要跨实例执行权
         optimization = self.config.script.optimization
         if not optimization.queue_mode and not optimization.stagger_enable:
             if self.instance_guard:
                 self.instance_guard.remove_from_queue()
                 self.instance_guard = None
-            return True
+            return False
 
-        # 懒加载instance_guard
         if self.instance_guard is None:
             group = []
             if optimization.stagger_enable and optimization.stagger_group:
@@ -382,7 +385,21 @@ class Script:
                     f"stagger={group}, gap={optimization.stagger_gap_minutes if optimization.stagger_enable else 0}min")
             except Exception:
                 self.instance_guard = None
-                return True
+                return False
+        return self.instance_guard is not None
+
+    def _try_acquire_queue_token(self) -> bool:
+        """
+        尝试获取排队执行权。
+        如果排队模式/错峰模式都未启用，返回 True。
+        否则阻塞等待执行权，直到获取成功或配置变更。
+
+        Returns:
+            True: 获取得执行权，可以执行任务
+            False: 等待被配置变更打断，调用方应重新加载配置后重试
+        """
+        if not self._ensure_instance_guard():
+            return True
 
         # 尝试获取执行权
         if self.instance_guard.try_acquire():
@@ -401,7 +418,7 @@ class Script:
                 pass
         self.config.start_watching()
         # 错峰模式下对方一跑完就要尽快接手，用更短的轮询间隔
-        poll_interval = 5 if optimization.stagger_enable else 30
+        poll_interval = 5 if self.config.script.optimization.stagger_enable else 30
         while True:
             time.sleep(poll_interval)
 
@@ -560,7 +577,11 @@ class Script:
         if command == 'start' or command == 'goto_main':
             logger.error(f'Invalid command `{command}`')
 
-        if not self._try_acquire_queue_token():
+        # 错峰豁免任务（Restart）：不等执行权，避免恢复流程被另一个实例的错峰队列卡住
+        if command in self.STAGGER_EXEMPT_TASKS:
+            if self._ensure_instance_guard():
+                self.instance_guard.try_acquire(queue=False)
+        elif not self._try_acquire_queue_token():
             return False
 
         if self.instance_guard and self.instance_guard.token_lost:

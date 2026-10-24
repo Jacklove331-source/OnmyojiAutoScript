@@ -1,7 +1,7 @@
 {
   "stagger": "错峰执行",
   "stagger_enable": "启用错峰执行",
-  "stagger_enable_help": "同一分组内的配置不会同时执行任务：两边都到点触发时，先到期的先跑，另一个等它这一轮跑完立刻接手。",
+  "stagger_enable_help": "同一分组内的配置不会同时执行任务：两边都到点触发时，先到期的先跑，另一个等它这一轮跑完立刻接手。恢复类任务（Restart）不受错峰限制，会直接执行。",
   "stagger_group": "错峰分组",
   "stagger_group_help": "配置名列表，逗号分隔，例如 oas1,oas3。只有同组配置之间才会互斥执行；留空则只跟本配置自己比。",
   "stagger_gap_minutes": "最小间隔（分钟）",

@@ -251,18 +251,22 @@ class InstanceGuard:
 
     # ==================== 执行权操作 ====================
 
-    def try_acquire(self) -> bool:
+    def try_acquire(self, queue: bool = True) -> bool:
         """尝试获取执行权。
+
+        Args:
+            queue: True 表示抢不到时排进等待队列（普通任务）；
+                False 表示只尝试一次、不排队（错峰豁免任务，如 Restart）。
 
         四种情况:
         1. 自己已是持有者 — 刷新 heartbeat，返回 True
         2. 持有者心跳过期 — 强制接管，返回 True
         3. 无人持有 — 自己成为持有者，启动心跳，返回 True
-        4. 他人持有 — 加入等待队列，返回 False
+        4. 他人持有 — 加入等待队列（queue=True），返回 False
 
         Returns:
             True: 已获得执行权。
-            False: 执行权被他人持有，已加入队列。
+            False: 执行权被他人持有。
         """
         with self._state._lock:
             state = self._state.read()
@@ -314,6 +318,16 @@ class InstanceGuard:
                 self._heartbeat.start()
                 return True
 
+            # 他人持有
+            if not queue:
+                # 豁免任务只尝试、不排队；如果之前排过队就撤掉
+                if self.config_name in state["queue"]:
+                    state["queue"].remove(self.config_name)
+                    self._state.write(state)
+                logger.info(
+                    f"[Stagger] '{self.config_name}' exempt from queue, "
+                    f"holder: '{state['current']}'")
+                return False
             # 他人持有，加入等待队列
             if self.config_name not in state["queue"]:
                 state["queue"].append(self.config_name)
