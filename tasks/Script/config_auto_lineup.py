@@ -28,13 +28,21 @@ class LineupApply(str, Enum):
     BOTH = 'both'
 
 
+class LineupStrategy(str, Enum):
+    TABLE = 'table'          # 按阵容表/任务映射直接选
+    OPTIMIZER = 'optimizer'  # 按你的式神池、技能、速度、御魂打分择优
+
+
 class AutoLineup(BaseModel):
     """自动阵容：战斗任务开始前自动挑选并套用最合适的阵容。"""
 
     enable: bool = Field(default=False, description='auto_lineup_enable_help')
     source: LineupSource = Field(default=LineupSource.LOCAL, description='auto_lineup_source_help')
+    strategy: LineupStrategy = Field(default=LineupStrategy.TABLE, description='auto_lineup_strategy_help')
     match_mode: LineupMatch = Field(default=LineupMatch.BOTH, description='auto_lineup_match_help')
     apply_mode: LineupApply = Field(default=LineupApply.PRESET, description='auto_lineup_apply_help')
+    roster_file: str = Field(default='config/roster.json', description='auto_lineup_roster_file_help')
+    min_score: int = Field(default=55, ge=0, le=100, description='auto_lineup_min_score_help')
     data_file: str = Field(default='config/auto_lineup.json', description='auto_lineup_data_file_help')
     web_url: str = Field(default='', description='auto_lineup_web_url_help')
     web_cache_hours: int = Field(default=24, ge=0, le=24 * 30, description='auto_lineup_web_cache_help')

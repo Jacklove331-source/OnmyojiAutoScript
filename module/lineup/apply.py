@@ -113,11 +113,51 @@ def apply_for_task(config_model, task_name: str, enemy_name: str | None = None,
         return {'applied': False, 'reason': f'{task_name} has no config group'}
 
     auto_cfg = getattr(config_model.script, 'auto_lineup', None)
-    entries, task_map = _load_entries_by_source(auto_cfg) if auto_cfg else data.load_entries()
-    entry, reason = resolve(entries, task_map, task_name, enemy_name, match_mode='both')
-    if entry is None:
-        return {'applied': False, 'reason': reason}
+    strategy = getattr(getattr(auto_cfg, 'strategy', None), 'value', 'table')
+    entry = None
+    reason = ''
 
+    if strategy == 'optimizer' and auto_cfg is not None:
+        from module.lineup import roster as roster_mod
+        from module.lineup import scoring
+        roster = roster_mod.load_roster(getattr(auto_cfg, 'roster_file', None))
+        if not roster:
+            reason = 'roster empty, fallback to table'
+            logger.warning('[AutoLineup] roster empty, fallback to table strategy')
+        else:
+            best = scoring.best_for_task(task_name, roster)
+            if best is None:
+                reason = 'optimizer found no template'
+            elif best['score'] < int(getattr(auto_cfg, 'min_score', 55)):
+                reason = (f"best `{best['template']['name']}` score {best['score']} "
+                          f"< min_score {getattr(auto_cfg, 'min_score', 55)}")
+                logger.warning(f'[AutoLineup] {reason}')
+            else:
+                tpl = best['template']
+                entry = data.LineupEntry(
+                    name=tpl.get('name', 'template'),
+                    preset_group=tpl.get('preset_group'),
+                    preset_team=tpl.get('preset_team'),
+                    tags=list(tpl.get('tags') or []),
+                    priority=int(best['score']),
+                    note=tpl.get('soul_hint', ''),
+                )
+                reason = (f"optimizer:{tpl.get('name')} score={best['score']} "
+                          f"fit={best['fit']} missing={len(best['missing'])}")
+                logger.info(f'[AutoLineup] {reason}')
+                if best['missing']:
+                    for miss in best['missing']:
+                        logger.warning(
+                            f"[AutoLineup] missing {miss['role']}: "
+                            f"candidates {miss['alternatives']}")
+
+    if entry is None:
+        entries, task_map = _load_entries_by_source(auto_cfg) if auto_cfg else data.load_entries()
+        entry, table_reason = resolve(entries, task_map, task_name, enemy_name, match_mode='both')
+        reason = reason + ' | ' + table_reason if reason else table_reason
+        if entry is None:
+            return {'applied': False, 'reason': reason}
+        logger.info(f'[AutoLineup] matched by {table_reason}')
     result = {'applied': False, 'reason': reason, 'lineup': entry.name}
     if dry_run:
         result['preview'] = {

@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "game_version": "2.8.78",
+  "resolution": "1280x720",
+  "_help": "实机截图里确认过的入口坐标（1280x720），供后续自动化「阵容助手」使用。",
+  "courtyard": {
+    "shikigami_records_icon": [1108, 622],
+    "bottom_menu_shikigami_records": [1140, 665]
+  },
+  "shikigami_records": {
+    "lineup_assistant_button": [331, 30],
+    "preset_button": [310, 95],
+    "tabs": {"all": [60, 148], "sp": [160, 148], "ssr": [230, 148]},
+    "detail_name_panel": [585, 120, 40, 330]
+  },
+  "lineup_assistant": {
+    "tabs": {"official": [45, 105], "community": [45, 232], "mine": [45, 360]},
+    "filter_level": [860, 100],
+    "filter_shikigami": [1040, 100],
+    "search": [1180, 100],
+    "list_first_entry": [560, 240],
+    "edit_button": [1120, 242],
+    "calc_button": [1205, 242],
+    "new_lineup": [1150, 680],
+    "organize": [920, 680],
+    "preset_count_text": [180, 680]
+  }
+}

@@ -1,0 +1,270 @@
+{
+  "version": 1,
+  "_help": "阵容模板：slots 描述每个位置需要的角色与候选式神，strength 是社区公认强度（0-100），preset_group/team 对应游戏预设槽位。",
+  "templates": [
+    {
+      "name": "御魂-通用AOE",
+      "tags": [
+        "御魂"
+      ],
+      "strength": 65,
+      "preset_group": 1,
+      "preset_team": 1,
+      "soul_hint": "输出：破势/狂骨 4+2，暴击优先；辅助：招财猫/火灵",
+      "slots": [
+        {
+          "role": "主C",
+          "weight": 3,
+          "candidates": [
+            "玉藻前",
+            "茨木童子",
+            "大天狗",
+            "八岐大蛇",
+            "阿修罗"
+          ],
+          "min_level": 40
+        },
+        {
+          "role": "副C",
+          "weight": 2,
+          "candidates": [
+            "茨木童子",
+            "大天狗",
+            "八岐大蛇",
+            "阿修罗",
+            "玉藻前"
+          ],
+          "min_level": 40
+        },
+        {
+          "role": "拉条/供火",
+          "weight": 2,
+          "candidates": [
+            "辉夜姬",
+            "因幡辉夜姬",
+            "座敷童子",
+            "山兔"
+          ],
+          "min_level": 30
+        }
+      ]
+    },
+    {
+      "name": "御魂-双须速刷",
+      "tags": [
+        "御魂"
+      ],
+      "strength": 95,
+      "preset_group": 1,
+      "preset_team": 2,
+      "soul_hint": "双须佐：破势/狂骨 高暴；因幡：招财猫 速度≥160",
+      "slots": [
+        {
+          "role": "主C",
+          "weight": 3,
+          "candidates": [
+            "须佐之男"
+          ],
+          "min_level": 40,
+          "min_skill": 555
+        },
+        {
+          "role": "副C",
+          "weight": 3,
+          "candidates": [
+            "须佐之男",
+            "SP大蛇",
+            "神堕八岐大蛇"
+          ],
+          "min_level": 40
+        },
+        {
+          "role": "拉条",
+          "weight": 3,
+          "candidates": [
+            "因幡辉夜姬",
+            "辉夜姬"
+          ],
+          "min_level": 40,
+          "min_speed": 160
+        }
+      ]
+    },
+    {
+      "name": "业原火-玉藻前",
+      "tags": [
+        "御魂",
+        "业原火"
+      ],
+      "strength": 80,
+      "preset_group": 1,
+      "preset_team": 3,
+      "soul_hint": "玉藻前破势/狂骨；副C 针女/心眼",
+      "slots": [
+        {
+          "role": "主C",
+          "weight": 3,
+          "candidates": [
+            "玉藻前",
+            "阿修罗",
+            "八岐大蛇"
+          ],
+          "min_level": 40
+        },
+        {
+          "role": "副C",
+          "weight": 2,
+          "candidates": [
+            "茨木童子",
+            "大天狗",
+            "须佐之男"
+          ],
+          "min_level": 40
+        },
+        {
+          "role": "拉条",
+          "weight": 2,
+          "candidates": [
+            "辉夜姬",
+            "因幡辉夜姬",
+            "山兔"
+          ],
+          "min_level": 30
+        }
+      ]
+    },
+    {
+      "name": "日轮/永生-多段AOE",
+      "tags": [
+        "御魂",
+        "日轮",
+        "永生之海"
+      ],
+      "strength": 85,
+      "preset_group": 1,
+      "preset_team": 4,
+      "soul_hint": "多段输出带针女；奶妈树妖/珍珠",
+      "slots": [
+        {
+          "role": "主C",
+          "weight": 3,
+          "candidates": [
+            "SP大蛇",
+            "阿修罗",
+            "玉藻前",
+            "须佐之男"
+          ],
+          "min_level": 40
+        },
+        {
+          "role": "副C",
+          "weight": 2,
+          "candidates": [
+            "八岐大蛇",
+            "茨木童子",
+            "大天狗"
+          ],
+          "min_level": 40
+        },
+        {
+          "role": "治疗/辅助",
+          "weight": 2,
+          "candidates": [
+            "SP萤草",
+            "缘结神",
+            "千姬"
+          ],
+          "min_level": 30
+        }
+      ]
+    },
+    {
+      "name": "探索-双拉速清",
+      "tags": [
+        "探索"
+      ],
+      "strength": 70,
+      "preset_group": 3,
+      "preset_team": 1,
+      "soul_hint": "双拉条 + 群体输出；速度优先",
+      "slots": [
+        {
+          "role": "输出",
+          "weight": 3,
+          "candidates": [
+            "玉藻前",
+            "大天狗",
+            "茨木童子",
+            "阿修罗",
+            "八岐大蛇"
+          ],
+          "min_level": 35
+        },
+        {
+          "role": "拉条1",
+          "weight": 2,
+          "candidates": [
+            "山兔",
+            "辉夜姬",
+            "因幡辉夜姬"
+          ],
+          "min_level": 25
+        },
+        {
+          "role": "拉条2",
+          "weight": 1,
+          "candidates": [
+            "山兔",
+            "辉夜姬",
+            "因幡辉夜姬"
+          ],
+          "min_level": 25
+        }
+      ]
+    },
+    {
+      "name": "逢魔-单体爆发",
+      "tags": [
+        "逢魔"
+      ],
+      "strength": 85,
+      "preset_group": 6,
+      "preset_team": 1,
+      "soul_hint": "单体输出破势/狂骨；增伤辅助带薙魂",
+      "slots": [
+        {
+          "role": "主C",
+          "weight": 3,
+          "candidates": [
+            "须佐之男",
+            "紧那罗",
+            "鬼切",
+            "SP大蛇"
+          ],
+          "min_level": 40
+        },
+        {
+          "role": "增伤",
+          "weight": 2,
+          "candidates": [
+            "帝释天",
+            "空相面灵气"
+          ],
+          "min_level": 30
+        },
+        {
+          "role": "供火/拉条",
+          "weight": 2,
+          "candidates": [
+            "因幡辉夜姬",
+            "辉夜姬",
+            "缘结神"
+          ],
+          "min_level": 30
+        }
+      ]
+    }
+  ],
+  "game_version": "2.8.78",
+  "updated_at": "2026-10-24"
+}
